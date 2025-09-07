@@ -16,7 +16,7 @@ import {
   HelpCircle,
   MessageCircle
 } from 'lucide-react';
-import { toast } from 'sonner@2.0.3';
+import { toast } from 'sonner';
 
 export function CommunicationManager() {
   const { communications, resolveCommunication, users, jobs } = useAuth();
