@@ -124,20 +124,57 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     initializeData();
   }, []);
 
-  const refreshData = async () => {
-    if (!sessionToken) return;
+  const refreshData = async (token?: string) => {
+    const currentToken = token || sessionToken;
+    if (!currentToken) return;
 
     try {
+      console.log('Refreshing data with session token:', currentToken ? 'present' : 'missing');
+      
+      // Create API call helper with specific token
+      const apiCallWithToken = async (endpoint: string, options: RequestInit = {}) => {
+        const response = await fetch(`${API_BASE}${endpoint}`, {
+          ...options,
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${currentToken}`,
+            ...options.headers,
+          },
+        });
+
+        if (!response.ok) {
+          const error = await response.text();
+          throw new Error(`API Error: ${response.status} - ${error}`);
+        }
+
+        return response.json();
+      };
+      
       // Fetch all data in parallel
       const [usersData, jobsData, communicationsData] = await Promise.all([
-        apiCall('/users'),
-        apiCall('/jobs'),
-        apiCall('/communications')
+        apiCallWithToken('/users').then(data => {
+          console.log('Users data received:', data);
+          return data;
+        }),
+        apiCallWithToken('/jobs').then(data => {
+          console.log('Jobs data received:', data);
+          return data;
+        }),
+        apiCallWithToken('/communications').then(data => {
+          console.log('Communications data received:', data);
+          return data;
+        })
       ]);
 
       setUsers(usersData);
       setJobs(jobsData);
       setCommunications(communicationsData);
+      
+      console.log('Data refresh complete:', {
+        users: usersData?.length || 0,
+        jobs: jobsData?.length || 0,
+        communications: communicationsData?.length || 0
+      });
     } catch (error) {
       console.error('Error refreshing data:', error);
       // If unauthorized, clear session
@@ -180,8 +217,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         localStorage.setItem('contractor_session_token', data.sessionToken);
         localStorage.setItem('contractor_current_user', JSON.stringify(data.user));
         
-        // Load data after successful login
-        await refreshData();
+        // Load data after successful login with the new session token
+        await refreshData(data.sessionToken);
         return true;
       } else {
         console.error('Login failed:', data.error);
