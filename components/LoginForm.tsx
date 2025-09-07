@@ -19,13 +19,14 @@ export function LoginForm() {
     setLoading(true);
     
     try {
+      console.log('Attempting login with:', { username, password: '***' });
       const success = await login(username, password);
       if (!success) {
-        setError('Invalid username or password');
+        setError('Invalid username or password. Please check your credentials.');
       }
     } catch (error) {
-      setError('Login failed. Please try again.');
       console.error('Login error:', error);
+      setError(`Login failed: ${error instanceof Error ? error.message : 'Please try again.'}`);
     } finally {
       setLoading(false);
     }
