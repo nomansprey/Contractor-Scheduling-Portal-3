@@ -72,9 +72,9 @@ export function LoginForm() {
             <h4 className="text-sm font-medium text-blue-900 mb-2">Demo Accounts:</h4>
             <div className="text-xs text-blue-800 space-y-1">
               <div><strong>Admin:</strong> karanmadan / karan123</div>
-              <div><strong>Plumber:</strong> kunalmadan / kunal123</div>
-              <div><strong>Tile Specialist:</strong> ivan123 / ivan123</div>
-              <div><strong>Electrician:</strong> mike123 / mike123</div>
+              <div><strong>Admin:</strong> kunalmadan / kunal123</div>
+              <div><strong>General Contractor:</strong> ivan123 / ivan123</div>
+              <div><strong>General Contractor:</strong> mike123 / mike123</div>
             </div>
           </div>
         </CardContent>
