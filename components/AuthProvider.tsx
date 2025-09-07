@@ -149,13 +149,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = async (username: string, password: string): Promise<boolean> => {
     try {
+      console.log('Making login request to:', `${API_BASE}/auth/login`);
       const response = await fetch(`${API_BASE}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password }),
       });
 
+      console.log('Login response status:', response.status);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Login HTTP error:', response.status, errorText);
+        throw new Error(`Server error: ${response.status} - ${errorText}`);
+      }
+
       const data = await response.json();
+      console.log('Login response data:', { success: data.success, user: data.user?.username });
 
       if (data.success) {
         setUser(data.user);
@@ -170,11 +180,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return true;
       } else {
         console.error('Login failed:', data.error);
-        return false;
+        throw new Error(data.error || 'Invalid credentials');
       }
     } catch (error) {
       console.error('Login error:', error);
-      return false;
+      throw error;
     }
   };
 
