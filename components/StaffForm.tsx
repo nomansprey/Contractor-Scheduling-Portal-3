@@ -43,9 +43,9 @@ export function StaffForm({ staff, onSubmit, onCancel }: StaffFormProps) {
       };
 
       if (staff) {
-        await onSave({ ...staffData, id: staff.id });
+        await onSubmit({ ...staffData, id: staff.id });
       } else {
-        await onSave(staffData);
+        await onSubmit(staffData);
       }
     } catch (error) {
       setError('Failed to save contractor. Please try again.');
