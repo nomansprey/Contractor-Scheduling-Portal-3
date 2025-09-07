@@ -89,7 +89,7 @@ const initialUsers: User[] = [
     name: 'Mike',
     role: 'contractor',
     specialties: ['General Contractor']
-  },
+  }
 ];
 
 const initialJobs: Job[] = [
@@ -159,8 +159,8 @@ const initialCommunications: Communication[] = [
 const mockPasswords: Record<string, string> = {
   'karanmadan': 'karan123',
   'kunalmadan': 'kunal123',
-  'ivan': 'ivan123',
-  'mike': 'mike123'
+  'ivan123': 'ivan123',
+  'mike123': 'mike123'
 };
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
