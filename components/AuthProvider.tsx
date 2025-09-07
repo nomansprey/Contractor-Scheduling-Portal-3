@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { projectId, publicAnonKey } from '../utils/supabase/info';
 
 export interface User {
   id: string;
@@ -48,230 +49,269 @@ interface AuthContextType {
   users: User[];
   jobs: Job[];
   communications: Communication[];
-  login: (username: string, password: string) => boolean;
+  login: (username: string, password: string) => Promise<boolean>;
   logout: () => void;
-  addJob: (job: Omit<Job, 'id'>) => void;
-  updateJob: (id: string, job: Partial<Job>) => void;
-  deleteJob: (id: string) => void;
-  addUser: (user: Omit<User, 'id'>) => void;
-  updateUser: (id: string, user: Partial<User>) => void;
-  deleteUser: (id: string) => void;
-  addCommunication: (communication: Omit<Communication, 'id' | 'createdAt'>) => void;
-  resolveCommunication: (id: string, adminResponse: string) => void;
+  addJob: (job: Omit<Job, 'id'>) => Promise<void>;
+  updateJob: (id: string, job: Partial<Job>) => Promise<void>;
+  deleteJob: (id: string) => Promise<void>;
+  addUser: (user: Omit<User, 'id'>) => Promise<void>;
+  updateUser: (id: string, user: Partial<User>) => Promise<void>;
+  deleteUser: (id: string) => Promise<void>;
+  addCommunication: (communication: Omit<Communication, 'id' | 'createdAt'>) => Promise<void>;
+  resolveCommunication: (id: string, adminResponse: string) => Promise<void>;
+  refreshData: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
-// Mock data for demonstration
-const initialUsers: User[] = [
-  {
-    id: '1',
-    username: 'karanmadan',
-    name: 'Karan',
-    role: 'admin'
-  },
-  {
-    id: '2',
-    username: 'kunalmadan',
-    name: 'Kunal',
-    role: 'admin'
-  },
-  {
-    id: '3',
-    username: 'ivan123',
-    name: 'Ivan',
-    role: 'contractor',
-    specialties: ['General Contractor']
-  },
-  {
-    id: '4',
-    username: 'mike123',
-    name: 'Mike',
-    role: 'contractor',
-    specialties: ['General Contractor']
-  }
-];
-
-const initialJobs: Job[] = [
-  {
-    id: '1',
-    title: 'Master Bathroom Renovation',
-    clientName: 'Jennifer Davis',
-    clientAddress: '123 Oak Street, Springfield',
-    startDate: '2024-01-15',
-    endDate: '2024-01-22',
-    assignedCrew: ['3', '4'],
-    status: 'scheduled',
-    notes: 'Complete gut renovation. Client wants luxury finishes.',
-    reminders: [
-      {
-        id: '1',
-        date: '2024-01-14',
-        message: 'Confirm tile delivery',
-        type: 'material_delivery'
-      }
-    ],
-    projectType: 'bathroom'
-  },
-  {
-    id: '2',
-    title: 'Kitchen Cabinet Installation',
-    clientName: 'Robert Martinez',
-    clientAddress: '456 Pine Avenue, Springfield',
-    startDate: '2024-01-20',
-    endDate: '2024-01-25',
-    assignedCrew: ['4'],
-    status: 'in_progress',
-    notes: 'Custom cabinets delivered. Need electrical for under-cabinet lighting.',
-    reminders: [],
-    projectType: 'kitchen'
-  }
-];
-
-const initialCommunications: Communication[] = [
-  {
-    id: '1',
-    jobId: '1',
-    contractorId: '3',
-    type: 'material_request',
-    subject: 'Additional Tile Needed',
-    message: 'We need 3 more boxes of the subway tile for the shower area. Found some damage in the existing tiles.',
-    priority: 'medium',
-    status: 'pending',
-    createdAt: '2024-01-12T10:30:00Z'
-  },
-  {
-    id: '2',
-    jobId: '2',
-    contractorId: '4',
-    type: 'change_order',
-    subject: 'Under-Cabinet Lighting Upgrade',
-    message: 'Client wants to upgrade to LED strip lighting instead of puck lights. Will need approval for additional $200.',
-    priority: 'high',
-    status: 'resolved',
-    createdAt: '2024-01-18T14:15:00Z',
-    resolvedAt: '2024-01-18T16:00:00Z',
-    adminResponse: 'Approved. Client confirmed via phone. Proceed with LED strips.'
-  }
-];
-
-// Mock passwords for demonstration (in real app, use proper auth)
-const mockPasswords: Record<string, string> = {
-  'karanmadan': 'karan123',
-  'kunalmadan': 'kunal123',
-  'ivan123': 'ivan123',
-  'mike123': 'mike123'
-};
+const API_BASE = `https://${projectId}.supabase.co/functions/v1/make-server-b8a529f8`;
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [users, setUsers] = useState<User[]>([]);
   const [jobs, setJobs] = useState<Job[]>([]);
   const [communications, setCommunications] = useState<Communication[]>([]);
+  const [sessionToken, setSessionToken] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    // Load data from localStorage or use initial data
-    const savedUsers = localStorage.getItem('contractor_users');
-    const savedJobs = localStorage.getItem('contractor_jobs');
-    const savedCommunications = localStorage.getItem('contractor_communications');
-    const savedUser = localStorage.getItem('contractor_current_user');
+  // Get auth headers
+  const getAuthHeaders = () => ({
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${sessionToken || publicAnonKey}`,
+  });
 
-    setUsers(savedUsers ? JSON.parse(savedUsers) : initialUsers);
-    setJobs(savedJobs ? JSON.parse(savedJobs) : initialJobs);
-    setCommunications(savedCommunications ? JSON.parse(savedCommunications) : initialCommunications);
-    
-    if (savedUser) {
-      const parsedUser = JSON.parse(savedUser);
-      const foundUser = (savedUsers ? JSON.parse(savedUsers) : initialUsers).find((u: User) => u.id === parsedUser.id);
-      if (foundUser) setUser(foundUser);
+  // API call helper
+  const apiCall = async (endpoint: string, options: RequestInit = {}) => {
+    const response = await fetch(`${API_BASE}${endpoint}`, {
+      ...options,
+      headers: {
+        ...getAuthHeaders(),
+        ...options.headers,
+      },
+    });
+
+    if (!response.ok) {
+      const error = await response.text();
+      throw new Error(`API Error: ${response.status} - ${error}`);
     }
+
+    return response.json();
+  };
+
+  // Load initial data and restore session
+  useEffect(() => {
+    const initializeData = async () => {
+      try {
+        // Check for existing session
+        const savedToken = localStorage.getItem('contractor_session_token');
+        const savedUser = localStorage.getItem('contractor_current_user');
+
+        if (savedToken && savedUser) {
+          setSessionToken(savedToken);
+          setUser(JSON.parse(savedUser));
+          await refreshData();
+        }
+      } catch (error) {
+        console.error('Error initializing data:', error);
+        // Clear invalid session
+        localStorage.removeItem('contractor_session_token');
+        localStorage.removeItem('contractor_current_user');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    initializeData();
   }, []);
 
-  useEffect(() => {
-    localStorage.setItem('contractor_users', JSON.stringify(users));
-  }, [users]);
+  const refreshData = async () => {
+    if (!sessionToken) return;
 
-  useEffect(() => {
-    localStorage.setItem('contractor_jobs', JSON.stringify(jobs));
-  }, [jobs]);
+    try {
+      // Fetch all data in parallel
+      const [usersData, jobsData, communicationsData] = await Promise.all([
+        apiCall('/users'),
+        apiCall('/jobs'),
+        apiCall('/communications')
+      ]);
 
-  useEffect(() => {
-    localStorage.setItem('contractor_communications', JSON.stringify(communications));
-  }, [communications]);
-
-  const login = (username: string, password: string): boolean => {
-    const foundUser = users.find(u => u.username === username);
-    if (foundUser && mockPasswords[username] === password) {
-      setUser(foundUser);
-      localStorage.setItem('contractor_current_user', JSON.stringify(foundUser));
-      return true;
+      setUsers(usersData);
+      setJobs(jobsData);
+      setCommunications(communicationsData);
+    } catch (error) {
+      console.error('Error refreshing data:', error);
+      // If unauthorized, clear session
+      if (error instanceof Error && error.message.includes('401')) {
+        logout();
+      }
     }
-    return false;
   };
 
-  const logout = () => {
-    setUser(null);
-    localStorage.removeItem('contractor_current_user');
+  const login = async (username: string, password: string): Promise<boolean> => {
+    try {
+      const response = await fetch(`${API_BASE}/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setUser(data.user);
+        setSessionToken(data.sessionToken);
+        
+        // Save to localStorage
+        localStorage.setItem('contractor_session_token', data.sessionToken);
+        localStorage.setItem('contractor_current_user', JSON.stringify(data.user));
+        
+        // Load data after successful login
+        await refreshData();
+        return true;
+      } else {
+        console.error('Login failed:', data.error);
+        return false;
+      }
+    } catch (error) {
+      console.error('Login error:', error);
+      return false;
+    }
   };
 
-  const addJob = (jobData: Omit<Job, 'id'>) => {
-    const newJob: Job = {
-      ...jobData,
-      id: Date.now().toString()
-    };
-    setJobs(prev => [...prev, newJob]);
+  const logout = async () => {
+    try {
+      if (sessionToken) {
+        await apiCall('/auth/logout', { method: 'POST' });
+      }
+    } catch (error) {
+      console.error('Logout error:', error);
+    } finally {
+      setUser(null);
+      setSessionToken(null);
+      setUsers([]);
+      setJobs([]);
+      setCommunications([]);
+      
+      // Clear localStorage
+      localStorage.removeItem('contractor_session_token');
+      localStorage.removeItem('contractor_current_user');
+    }
   };
 
-  const updateJob = (id: string, jobData: Partial<Job>) => {
-    setJobs(prev => prev.map(job => 
-      job.id === id ? { ...job, ...jobData } : job
-    ));
+  const addJob = async (jobData: Omit<Job, 'id'>) => {
+    try {
+      const newJob = await apiCall('/jobs', {
+        method: 'POST',
+        body: JSON.stringify(jobData),
+      });
+      setJobs(prev => [...prev, newJob]);
+    } catch (error) {
+      console.error('Error adding job:', error);
+      throw error;
+    }
   };
 
-  const deleteJob = (id: string) => {
-    setJobs(prev => prev.filter(job => job.id !== id));
+  const updateJob = async (id: string, jobData: Partial<Job>) => {
+    try {
+      const updatedJob = await apiCall(`/jobs/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(jobData),
+      });
+      setJobs(prev => prev.map(job => 
+        job.id === id ? updatedJob : job
+      ));
+    } catch (error) {
+      console.error('Error updating job:', error);
+      throw error;
+    }
   };
 
-  const addUser = (userData: Omit<User, 'id'>) => {
-    const newUser: User = {
-      ...userData,
-      id: Date.now().toString()
-    };
-    setUsers(prev => [...prev, newUser]);
-    
-    // Add default password for new contractors (in real app, generate random password and email it)
-    mockPasswords[userData.username] = userData.username + '123';
+  const deleteJob = async (id: string) => {
+    try {
+      await apiCall(`/jobs/${id}`, { method: 'DELETE' });
+      setJobs(prev => prev.filter(job => job.id !== id));
+    } catch (error) {
+      console.error('Error deleting job:', error);
+      throw error;
+    }
   };
 
-  const updateUser = (id: string, userData: Partial<User>) => {
-    setUsers(prev => prev.map(user => 
-      user.id === id ? { ...user, ...userData } : user
-    ));
+  const addUser = async (userData: Omit<User, 'id'>) => {
+    try {
+      const newUser = await apiCall('/users', {
+        method: 'POST',
+        body: JSON.stringify(userData),
+      });
+      setUsers(prev => [...prev, newUser]);
+    } catch (error) {
+      console.error('Error adding user:', error);
+      throw error;
+    }
   };
 
-  const deleteUser = (id: string) => {
-    setUsers(prev => prev.filter(user => user.id !== id));
+  const updateUser = async (id: string, userData: Partial<User>) => {
+    try {
+      const updatedUser = await apiCall(`/users/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(userData),
+      });
+      setUsers(prev => prev.map(user => 
+        user.id === id ? updatedUser : user
+      ));
+    } catch (error) {
+      console.error('Error updating user:', error);
+      throw error;
+    }
   };
 
-  const addCommunication = (communicationData: Omit<Communication, 'id' | 'createdAt'>) => {
-    const newCommunication: Communication = {
-      ...communicationData,
-      id: Date.now().toString(),
-      createdAt: new Date().toISOString()
-    };
-    setCommunications(prev => [...prev, newCommunication]);
+  const deleteUser = async (id: string) => {
+    try {
+      await apiCall(`/users/${id}`, { method: 'DELETE' });
+      setUsers(prev => prev.filter(user => user.id !== id));
+    } catch (error) {
+      console.error('Error deleting user:', error);
+      throw error;
+    }
   };
 
-  const resolveCommunication = (id: string, adminResponse: string) => {
-    setCommunications(prev => prev.map(comm => 
-      comm.id === id ? { 
-        ...comm, 
-        status: 'resolved' as const, 
-        adminResponse,
-        resolvedAt: new Date().toISOString()
-      } : comm
-    ));
+  const addCommunication = async (communicationData: Omit<Communication, 'id' | 'createdAt'>) => {
+    try {
+      const newCommunication = await apiCall('/communications', {
+        method: 'POST',
+        body: JSON.stringify(communicationData),
+      });
+      setCommunications(prev => [...prev, newCommunication]);
+    } catch (error) {
+      console.error('Error adding communication:', error);
+      throw error;
+    }
   };
+
+  const resolveCommunication = async (id: string, adminResponse: string) => {
+    try {
+      const updatedCommunication = await apiCall(`/communications/${id}/resolve`, {
+        method: 'PUT',
+        body: JSON.stringify({ adminResponse }),
+      });
+      setCommunications(prev => prev.map(comm => 
+        comm.id === id ? updatedCommunication : comm
+      ));
+    } catch (error) {
+      console.error('Error resolving communication:', error);
+      throw error;
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading contractor scheduling system...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <AuthContext.Provider value={{
@@ -288,7 +328,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       updateUser,
       deleteUser,
       addCommunication,
-      resolveCommunication
+      resolveCommunication,
+      refreshData
     }}>
       {children}
     </AuthContext.Provider>
