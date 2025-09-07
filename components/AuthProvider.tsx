@@ -66,13 +66,13 @@ const AuthContext = createContext<AuthContextType | null>(null);
 const initialUsers: User[] = [
   {
     id: '1',
-    username: 'karan123',
+    username: 'karanmadan',
     name: 'Karan',
     role: 'admin'
   },
   {
     id: '2',
-    username: 'kunal123',
+    username: 'kunalmadan',
     name: 'Kunal',
     role: 'admin'
   },
@@ -100,7 +100,7 @@ const initialJobs: Job[] = [
     clientAddress: '123 Oak Street, Springfield',
     startDate: '2024-01-15',
     endDate: '2024-01-22',
-    assignedCrew: ['2', '3'],
+    assignedCrew: ['3', '4'],
     status: 'scheduled',
     notes: 'Complete gut renovation. Client wants luxury finishes.',
     reminders: [
@@ -132,7 +132,7 @@ const initialCommunications: Communication[] = [
   {
     id: '1',
     jobId: '1',
-    contractorId: '2',
+    contractorId: '3',
     type: 'material_request',
     subject: 'Additional Tile Needed',
     message: 'We need 3 more boxes of the subway tile for the shower area. Found some damage in the existing tiles.',
@@ -157,10 +157,10 @@ const initialCommunications: Communication[] = [
 
 // Mock passwords for demonstration (in real app, use proper auth)
 const mockPasswords: Record<string, string> = {
-  'karan123': 'karan123',
-  'kunal123': 'kunal123',
-  'ivan123': 'ivan123',
-  'mike123': 'mike123'
+  'karanmadan': 'karan123',
+  'kunalmadan': 'kunal123',
+  'ivan': 'ivan123',
+  'mike': 'mike123'
 };
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
