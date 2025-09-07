@@ -10,13 +10,17 @@ function AppContent() {
   const { user } = useAuth();
 
   if (!user) {
-    return <LoginForm />;
+    return (
+      <div className="min-h-screen bg-background">
+        <LoginForm />
+      </div>
+    );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background">
       <Navigation />
-      <main className="max-w-7xl mx-auto p-2 sm:p-4 md:p-6">
+      <main className="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
         {user.role === 'admin' ? <AdminDashboard /> : <ContractorDashboard />}
       </main>
       <Toaster />
