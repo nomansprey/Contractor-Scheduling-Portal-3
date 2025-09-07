@@ -5,7 +5,7 @@ module.exports = {
     "./index.html",
     "./App.tsx",
     "./main.tsx",
-    "./components/*/.{js,ts,jsx,tsx}",
+    "./components/**/*.{js,ts,jsx,tsx}",
   ],
   theme: {
     extend: {
@@ -43,6 +43,7 @@ module.exports = {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        "input-background": "hsl(var(--input-background))",
       },
       borderRadius: {
         lg: "var(--radius)",
