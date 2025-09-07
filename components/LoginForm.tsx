@@ -27,7 +27,7 @@ export function LoginForm() {
     <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <CardTitle>Contractor Job Scheduler</CardTitle>
+          <CardTitle>CCC Project Portal</CardTitle>
           <CardDescription>
             Sign in to manage your renovation projects
           </CardDescription>
@@ -71,10 +71,10 @@ export function LoginForm() {
           <div className="mt-6 p-4 bg-blue-50 rounded-lg">
             <h4 className="text-sm font-medium text-blue-900 mb-2">Demo Accounts:</h4>
             <div className="text-xs text-blue-800 space-y-1">
-              <div><strong>Admin:</strong> admin / admin123</div>
-              <div><strong>Plumber:</strong> mike_plumber / mike123</div>
-              <div><strong>Tile Specialist:</strong> sarah_tile / sarah123</div>
-              <div><strong>Electrician:</strong> tom_electric / tom123</div>
+              <div><strong>Admin:</strong> karanmadan / karan123</div>
+              <div><strong>Plumber:</strong> kunalmadan / kunal123</div>
+              <div><strong>Tile Specialist:</strong> ivan123 / ivan123</div>
+              <div><strong>Electrician:</strong> mike123 / mike123</div>
             </div>
           </div>
         </CardContent>
