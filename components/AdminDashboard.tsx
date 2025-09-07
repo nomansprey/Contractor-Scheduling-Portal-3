@@ -69,20 +69,31 @@ export function AdminDashboard() {
     setShowJobForm(true);
   };
 
-  const handleDeleteJob = (jobId: string) => {
+  const handleDeleteJob = async (jobId: string) => {
     if (confirm('Are you sure you want to delete this job?')) {
-      deleteJob(jobId);
+      try {
+        await deleteJob(jobId);
+      } catch (error) {
+        console.error('Error deleting job:', error);
+        alert('Failed to delete job. Please try again.');
+      }
     }
   };
 
-  const handleStaffSubmit = (staffData: User | Omit<User, 'id'>) => {
-    if ('id' in staffData) {
-      updateUser(staffData.id, staffData);
-    } else {
-      addUser(staffData);
+  const handleStaffSubmit = async (staffData: User | Omit<User, 'id'>) => {
+    try {
+      if ('id' in staffData) {
+        await updateUser(staffData.id, staffData);
+      } else {
+        await addUser(staffData);
+      }
+      setShowStaffForm(false);
+      setSelectedStaff(null);
+    } catch (error) {
+      console.error('Error saving staff:', error);
+      // Error is handled in the form component
+      throw error;
     }
-    setShowStaffForm(false);
-    setSelectedStaff(null);
   };
 
   const handleEditStaff = (staff: User) => {
@@ -90,9 +101,14 @@ export function AdminDashboard() {
     setShowStaffForm(true);
   };
 
-  const handleDeleteStaff = (staffId: string) => {
+  const handleDeleteStaff = async (staffId: string) => {
     if (confirm('Are you sure you want to delete this contractor? This will remove them from all assigned jobs.')) {
-      deleteUser(staffId);
+      try {
+        await deleteUser(staffId);
+      } catch (error) {
+        console.error('Error deleting staff:', error);
+        alert('Failed to delete contractor. Please try again.');
+      }
     }
   };
 

@@ -5,7 +5,6 @@ import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Badge } from './ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
-import { Alert, AlertDescription } from './ui/alert';
 import { X, Plus } from 'lucide-react';
 
 interface StaffFormProps {
@@ -21,37 +20,25 @@ export function StaffForm({ staff, onSubmit, onCancel }: StaffFormProps) {
     specialties: staff?.specialties || []
   });
   const [newSpecialty, setNewSpecialty] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
-    setLoading(true);
     
     if (!formData.name.trim() || !formData.username.trim()) {
-      setError('Please fill in all required fields');
-      setLoading(false);
+      alert('Please fill in all required fields');
       return;
     }
 
-    try {
-      const staffData = {
-        ...formData,
-        role: 'contractor' as const,
-        specialties: formData.specialties.length > 0 ? formData.specialties : undefined
-      };
+    const staffData = {
+      ...formData,
+      role: 'contractor' as const,
+      specialties: formData.specialties.length > 0 ? formData.specialties : undefined
+    };
 
-      if (staff) {
-        await onSave({ ...staffData, id: staff.id });
-      } else {
-        await onSave(staffData);
-      }
-    } catch (error) {
-      setError('Failed to save contractor. Please try again.');
-      console.error('Staff save error:', error);
-    } finally {
-      setLoading(false);
+    if (staff) {
+      onSubmit({ ...staffData, id: staff.id });
+    } else {
+      onSubmit(staffData);
     }
   };
 
@@ -139,23 +126,12 @@ export function StaffForm({ staff, onSubmit, onCancel }: StaffFormProps) {
             </p>
           </div>
 
-          {error && (
-            <Alert className="border-red-200 bg-red-50">
-              <AlertDescription className="text-red-800">
-                {error}
-              </AlertDescription>
-            </Alert>
-          )}
-
           <div className="flex justify-end gap-2 pt-4">
-            <Button type="button" variant="outline" onClick={onCancel} disabled={loading}>
+            <Button type="button" variant="outline" onClick={onCancel}>
               Cancel
             </Button>
-            <Button type="submit" disabled={loading}>
-              {loading 
-                ? (staff ? 'Updating...' : 'Adding...') 
-                : (staff ? 'Update Contractor' : 'Add Contractor')
-              }
+            <Button type="submit">
+              {staff ? 'Update Contractor' : 'Add Contractor'}
             </Button>
           </div>
         </form>
