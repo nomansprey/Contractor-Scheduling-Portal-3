@@ -1,17 +1,33 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from './AuthProvider';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
+import { SyncStatus } from './SyncStatus';
 import { LogOut, Shield, User, Calendar, Briefcase } from 'lucide-react';
 
 export function Navigation() {
   const { user, logout } = useAuth();
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [lastSync, setLastSync] = useState<Date>(new Date());
 
   if (!user) return null;
 
-  const handleLogout = () => {
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+
+  const handleLogout = async () => {
     if (confirm('Are you sure you want to log out?')) {
-      logout();
+      await logout();
     }
   };
 
@@ -33,6 +49,8 @@ export function Navigation() {
         </div>
 
         <div className="flex items-center gap-4">
+          <SyncStatus isOnline={isOnline} lastSync={lastSync} />
+          
           <div className="text-right">
             <p className="text-sm font-medium text-gray-900">{user.name}</p>
             <p className="text-xs text-gray-500">@{user.username}</p>
