@@ -239,6 +239,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       id: Date.now().toString()
     };
     setUsers(prev => [...prev, newUser]);
+    
+    // Add default password for new contractors (in real app, generate random password and email it)
+    mockPasswords[userData.username] = userData.username + '123';
   };
 
   const updateUser = (id: string, userData: Partial<User>) => {
