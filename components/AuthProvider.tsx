@@ -149,10 +149,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = async (username: string, password: string): Promise<boolean> => {
     try {
+      console.log('Attempting login with:', { username, password: '***' });
       console.log('Making login request to:', `${API_BASE}/auth/login`);
+      
       const response = await fetch(`${API_BASE}/auth/login`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${publicAnonKey}`,
+        },
         body: JSON.stringify({ username, password }),
       });
 
