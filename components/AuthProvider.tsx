@@ -206,13 +206,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         throw new Error(`Server error: ${response.status} - ${errorText}`);
       }
 
-      const data = await response.json();
-      console.log('Login response data:', { 
-        success: data.success, 
-        user: data.user?.username,
-        sessionToken: data.sessionToken ? 'present' : 'missing',
-        fullData: data 
-      });
+      let data;
+      let responseText;
+      try {
+        // Get the response text first so we can debug if needed
+        responseText = await response.text();
+        console.log('Raw login response text:', responseText);
+        
+        // Then parse it as JSON
+        data = JSON.parse(responseText);
+        console.log('Login response parsed successfully');
+        console.log('Login response data:', { 
+          success: data.success, 
+          user: data.user?.username,
+          sessionToken: data.sessionToken ? 'present' : 'missing',
+          fullData: data 
+        });
+      } catch (jsonError) {
+        console.error('Failed to parse login response as JSON:', jsonError);
+        console.error('Response text that failed to parse:', responseText);
+        throw new Error('Invalid response format from server');
+      }
 
       if (data.success) {
         setUser(data.user);
