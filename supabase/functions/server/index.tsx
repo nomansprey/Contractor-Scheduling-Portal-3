@@ -39,6 +39,10 @@ async function kvSet(key: string, value: any) {
 }
 
 // Health check FIRST
+app.get('/health', (c) => {
+  return c.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
 app.get('/make-server-b8a529f8/health', (c) => {
   return c.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
@@ -111,7 +115,7 @@ async function validateSession(sessionToken: string) {
   }
 }
 
-app.post('/make-server-b8a529f8/auth/login', async (c) => {
+app.post('/auth/login', async (c) => {
   try {
     const { username, password } = await c.req.json();
     
@@ -137,11 +141,11 @@ app.post('/make-server-b8a529f8/auth/login', async (c) => {
   }
 });
 
-app.post('/make-server-b8a529f8/auth/logout', async (c) => {
+app.post('/auth/logout', async (c) => {
   return c.json({ success: true });
 });
 
-app.get('/make-server-b8a529f8/users', async (c) => {
+app.get('/users', async (c) => {
   try {
     const sessionToken = c.req.header('Authorization')?.replace('Bearer ', '');
     const currentUser = await validateSession(sessionToken);
@@ -157,7 +161,7 @@ app.get('/make-server-b8a529f8/users', async (c) => {
   }
 });
 
-app.get('/make-server-b8a529f8/jobs', async (c) => {
+app.get('/jobs', async (c) => {
   try {
     const sessionToken = c.req.header('Authorization')?.replace('Bearer ', '');
     const currentUser = await validateSession(sessionToken);
@@ -181,7 +185,7 @@ app.get('/make-server-b8a529f8/jobs', async (c) => {
   }
 });
 
-app.get('/make-server-b8a529f8/communications', async (c) => {
+app.get('/communications', async (c) => {
   try {
     const sessionToken = c.req.header('Authorization')?.replace('Bearer ', '');
     const currentUser = await validateSession(sessionToken);
