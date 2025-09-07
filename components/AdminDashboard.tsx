@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { useAuth, Job } from './AuthProvider';
+import { useAuth, Job, User } from './AuthProvider';
 import { JobCalendar } from './JobCalendar';
 import { JobForm } from './JobForm';
+import { StaffForm } from './StaffForm';
 import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Badge } from './ui/badge';
@@ -24,10 +25,11 @@ import {
 import { CommunicationManager } from './CommunicationManager';
 
 export function AdminDashboard() {
-  const { jobs, users, communications, addJob, updateJob, deleteJob, user } = useAuth();
+  const { jobs, users, communications, addJob, updateJob, deleteJob, addUser, updateUser, deleteUser, user } = useAuth();
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
+  const [selectedStaff, setSelectedStaff] = useState<User | null>(null);
   const [showJobForm, setShowJobForm] = useState(false);
-  const [showUserForm, setShowUserForm] = useState(false);
+  const [showStaffForm, setShowStaffForm] = useState(false);
 
   const contractors = users.filter(u => u.role === 'contractor');
   const activeJobs = jobs.filter(job => job.status === 'in_progress' || job.status === 'scheduled');
@@ -70,6 +72,27 @@ export function AdminDashboard() {
   const handleDeleteJob = (jobId: string) => {
     if (confirm('Are you sure you want to delete this job?')) {
       deleteJob(jobId);
+    }
+  };
+
+  const handleStaffSubmit = (staffData: User | Omit<User, 'id'>) => {
+    if ('id' in staffData) {
+      updateUser(staffData.id, staffData);
+    } else {
+      addUser(staffData);
+    }
+    setShowStaffForm(false);
+    setSelectedStaff(null);
+  };
+
+  const handleEditStaff = (staff: User) => {
+    setSelectedStaff(staff);
+    setShowStaffForm(true);
+  };
+
+  const handleDeleteStaff = (staffId: string) => {
+    if (confirm('Are you sure you want to delete this contractor? This will remove them from all assigned jobs.')) {
+      deleteUser(staffId);
     }
   };
 
@@ -267,55 +290,85 @@ export function AdminDashboard() {
         </TabsContent>
 
         <TabsContent value="contractors">
-          <div className="grid gap-4">
-            {contractors.map(contractor => {
-              const contractorJobs = jobs.filter(job => job.assignedCrew.includes(contractor.id));
-              const activeContractorJobs = contractorJobs.filter(job => 
-                job.status === 'in_progress' || job.status === 'scheduled'
-              );
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h2>Contractor Management</h2>
+              <Button onClick={() => setShowStaffForm(true)}>
+                <Plus className="h-4 w-4 mr-2" />
+                Add Contractor
+              </Button>
+            </div>
+            
+            <div className="grid gap-4">
+              {contractors.map(contractor => {
+                const contractorJobs = jobs.filter(job => job.assignedCrew.includes(contractor.id));
+                const activeContractorJobs = contractorJobs.filter(job => 
+                  job.status === 'in_progress' || job.status === 'scheduled'
+                );
 
-              return (
-                <Card key={contractor.id}>
-                  <CardContent className="p-4">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <h3 className="font-semibold">{contractor.name}</h3>
-                        <p className="text-sm text-gray-600">@{contractor.username}</p>
-                        {contractor.specialties && (
-                          <div className="flex flex-wrap gap-1 mt-2">
-                            {contractor.specialties.map(specialty => (
-                              <Badge key={specialty} variant="secondary" className="text-xs">
-                                {specialty}
-                              </Badge>
-                            ))}
+                return (
+                  <Card key={contractor.id}>
+                    <CardContent className="p-4">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3 mb-2">
+                            <h3 className="font-semibold">{contractor.name}</h3>
+                            <Badge variant="outline" className="text-xs">
+                              @{contractor.username}
+                            </Badge>
                           </div>
-                        )}
-                      </div>
-                      <div className="text-right">
-                        <p className="text-sm text-gray-600">Active Jobs</p>
-                        <p className="text-xl font-bold">{activeContractorJobs.length}</p>
-                      </div>
-                    </div>
-                    
-                    {activeContractorJobs.length > 0 && (
-                      <div className="mt-3 pt-3 border-t">
-                        <p className="text-sm font-medium mb-2">Current Assignments:</p>
-                        <div className="space-y-1">
-                          {activeContractorJobs.map(job => (
-                            <div key={job.id} className="text-sm flex items-center justify-between">
-                              <span>{job.title}</span>
-                              <Badge className={getStatusColor(job.status)} variant="secondary">
-                                {job.status.replace('_', ' ')}
-                              </Badge>
+                          {contractor.specialties && (
+                            <div className="flex flex-wrap gap-1 mb-2">
+                              {contractor.specialties.map(specialty => (
+                                <Badge key={specialty} variant="secondary" className="text-xs">
+                                  {specialty}
+                                </Badge>
+                              ))}
                             </div>
-                          ))}
+                          )}
+                          <p className="text-sm text-gray-600">
+                            {activeContractorJobs.length} active job{activeContractorJobs.length !== 1 ? 's' : ''}
+                          </p>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleEditStaff(contractor)}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleDeleteStaff(contractor.id)}
+                            className="text-red-600 hover:text-red-700"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
                         </div>
                       </div>
-                    )}
-                  </CardContent>
-                </Card>
-              );
-            })}
+                      
+                      {activeContractorJobs.length > 0 && (
+                        <div className="mt-3 pt-3 border-t">
+                          <p className="text-sm font-medium mb-2">Current Assignments:</p>
+                          <div className="space-y-1">
+                            {activeContractorJobs.map(job => (
+                              <div key={job.id} className="text-sm flex items-center justify-between">
+                                <span>{job.title}</span>
+                                <Badge className={getStatusColor(job.status)} variant="secondary">
+                                  {job.status.replace('_', ' ')}
+                                </Badge>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
           </div>
         </TabsContent>
       </Tabs>
@@ -334,6 +387,25 @@ export function AdminDashboard() {
             onCancel={() => {
               setShowJobForm(false);
               setSelectedJob(null);
+            }}
+          />
+        </DialogContent>
+      </Dialog>
+
+      {/* Staff Form Dialog */}
+      <Dialog open={showStaffForm} onOpenChange={setShowStaffForm}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>
+              {selectedStaff ? 'Edit Contractor' : 'Add New Contractor'}
+            </DialogTitle>
+          </DialogHeader>
+          <StaffForm
+            staff={selectedStaff || undefined}
+            onSubmit={handleStaffSubmit}
+            onCancel={() => {
+              setShowStaffForm(false);
+              setSelectedStaff(null);
             }}
           />
         </DialogContent>
