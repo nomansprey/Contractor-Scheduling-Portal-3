@@ -207,7 +207,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       const data = await response.json();
-      console.log('Login response data:', { success: data.success, user: data.user?.username });
+      console.log('Login response data:', { 
+        success: data.success, 
+        user: data.user?.username,
+        sessionToken: data.sessionToken ? 'present' : 'missing',
+        fullData: data 
+      });
 
       if (data.success) {
         setUser(data.user);
@@ -218,6 +223,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         localStorage.setItem('contractor_current_user', JSON.stringify(data.user));
         
         // Load data after successful login with the new session token
+        console.log('About to call refreshData with token:', data.sessionToken ? 'present' : 'missing');
         await refreshData(data.sessionToken);
         return true;
       } else {
